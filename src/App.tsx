@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import {
   createConversation,
   getMessages,
+  getModels,
   listConversations,
-  sendMessage,
+  sendMessageStream,
   type ConversationSummary,
 } from './api'
 import ChatWindow, { type ChatMessage } from './components/ChatWindow'
@@ -20,10 +21,17 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [models, setModels] = useState<string[]>([])
+  const [selectedModel, setSelectedModel] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
-  // On startup, load the history and open the most recent conversation.
   useEffect(() => {
+    getModels().then(({ models: available, default: defaultModel }) => {
+      setModels(available)
+      setSelectedModel(defaultModel || available[0] || '')
+    }).catch((err) => setError(errorMessage(err)))
     listConversations()
       .then((list) => {
         setConversations(list)
@@ -32,7 +40,6 @@ export default function App() {
       .catch((err) => setError(errorMessage(err)))
   }, [])
 
-  // Load the messages whenever another conversation is opened.
   useEffect(() => {
     if (activeId === null) return
     let cancelled = false
@@ -41,9 +48,7 @@ export default function App() {
         if (!cancelled) setMessages(list.map(({ role, content }) => ({ role, content })))
       })
       .catch((err) => !cancelled && setError(errorMessage(err)))
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [activeId])
 
   function selectConversation(id: number) {
@@ -59,69 +64,61 @@ export default function App() {
     setError(null)
     try {
       const id = await createConversation()
-      setConversations((list) => [
-        { id, created_at: new Date().toISOString(), preview: null },
-        ...list,
-      ])
+      setConversations((list) => [{ id, created_at: new Date().toISOString(), preview: null }, ...list])
       setDraft('')
       setMessages([])
       setActiveId(id)
-    } catch (err) {
-      setError(errorMessage(err))
-    }
+    } catch (err) { setError(errorMessage(err)) }
+  }
+
+  function handleStopStreaming() {
+    abortControllerRef.current?.abort()
   }
 
   async function handleSend() {
-    if (activeId === null) return
+    if (activeId === null || loading) return
     const text = draft.trim()
+    if (!text) return
+    const conversationId = activeId
     const isFirstMessage = messages.length === 0
+    const assistantIndex = messages.length + 1
+    const controller = new AbortController()
+    abortControllerRef.current = controller
     setError(null)
     setDraft('')
-    setMessages((list) => [...list, { role: 'user', content: text }])
+    setMessages((list) => [...list, { role: 'user', content: text }, { role: 'assistant', content: '' }])
     setLoading(true)
+    setIsStreaming(true)
     try {
-      const { reply, notification } = await sendMessage(activeId, text)
-      setMessages((list) => [
-        ...list,
-        { role: 'assistant', content: reply },
-        ...(notification ? [{ role: 'system-notification' as const, content: notification }] : []),
-      ])
-      // The first message becomes the conversation's preview in the sidebar.
+      await sendMessageStream({
+        conversation_id: conversationId,
+        message: text,
+        model: selectedModel || undefined,
+        signal: controller.signal,
+        onChunk: (chunk) => setMessages((list) => list.map((item, index) => index === assistantIndex ? { ...item, content: item.content + chunk } : item)),
+        onNotification: (notification) => setMessages((list) => [...list, { role: 'system-notification', content: notification }]),
+      })
       if (isFirstMessage) setConversations(await listConversations())
     } catch (err) {
-      // The backend didn't save the turn: drop the optimistic message and give the text back.
-      setMessages((list) => list.slice(0, -1))
-      setDraft(text)
-      setError(errorMessage(err))
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        setMessages((list) => list.filter((_, index) => index !== assistantIndex))
+        setDraft(text)
+        setError(errorMessage(err))
+      }
     } finally {
+      if (abortControllerRef.current === controller) abortControllerRef.current = null
       setLoading(false)
+      setIsStreaming(false)
     }
   }
 
   return (
     <div className="app">
-      <Sidebar
-        conversations={conversations}
-        activeId={activeId}
-        onSelect={selectConversation}
-        onNew={handleNew}
-      />
+      <Sidebar conversations={conversations} activeId={activeId} onSelect={selectConversation} onNew={handleNew} />
       <main className="main">
-        {error && (
-          <div className="error" role="alert">
-            {error}
-            <button onClick={() => setError(null)} aria-label="Fermer">
-              ×
-            </button>
-          </div>
-        )}
+        {error && <div className="error" role="alert">{error}<button onClick={() => setError(null)} aria-label="Fermer">×</button></div>}
         {activeId === null ? (
-          <div className="empty">
-            <p>Aucune conversation ouverte.</p>
-            <button className="new-button" onClick={handleNew}>
-              + Nouvelle conversation
-            </button>
-          </div>
+          <div className="empty"><p>Aucune conversation ouverte.</p><button className="new-button" onClick={handleNew}>+ Nouvelle conversation</button></div>
         ) : (
           <ChatWindow
             messages={messages}
@@ -129,6 +126,11 @@ export default function App() {
             draft={draft}
             onDraftChange={setDraft}
             onSend={handleSend}
+            models={models}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            isStreaming={isStreaming}
+            onStopStreaming={handleStopStreaming}
           />
         )}
       </main>
