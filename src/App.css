@@ -6,10 +6,10 @@
 .new-button { padding: 10px 14px; border: none; border-radius: 999px; background: var(--accent); color: var(--accent-text); cursor: pointer; font-weight: 600; }
 .new-button:hover { filter: brightness(1.08); }
 .conversation-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
-.conversation-item { display: flex; flex-direction: column; align-items: flex-start; padding: 8px 10px; border: none; border-radius: 4px; background: transparent; text-align: left; cursor: pointer; }
+.conversation-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 8px 10px; border: none; border-radius: 4px; background: transparent; text-align: left; cursor: pointer; }
 .conversation-item:hover { background: var(--bg-hover); }
 .conversation-item.active { background: var(--bg-active); }
-.conversation-preview { width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.conversation-preview { flex: 1; min-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conversation-date { font-size: 0.75rem; color: var(--muted); }
 
 /* Main area */

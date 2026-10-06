@@ -30,7 +30,6 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onDe
           <div
             key={c.id}
             className={`conversation-item${c.id === activeId ? ' active' : ''}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
             <button
               type="button"
