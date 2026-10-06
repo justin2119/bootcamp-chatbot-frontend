@@ -8,7 +8,7 @@ export default defineConfig({
     // Forward /api/* to the FastAPI backend so the browser only talks to the Vite origin (no CORS needed).
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
