@@ -11,6 +11,7 @@ import {
   type ConversationSummary,
 } from './api'
 import ChatWindow, { type ChatMessage } from './components/ChatWindow'
+import SettingsModal from './components/SettingsModal'
 import Sidebar from './components/Sidebar'
 
 function errorMessage(err: unknown): string {
@@ -28,6 +29,7 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState('')
   const [mode, setMode] = useState<AssistantMode>('default')
   const [temperature, setTemperature] = useState(0.7)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -149,18 +151,15 @@ export default function App() {
             draft={draft}
             onDraftChange={setDraft}
             onSend={handleSend}
-            models={models}
-            selectedModel={selectedModel}
-            setSelectedModel={setSelectedModel}
             mode={mode}
-            setMode={setMode}
-            temperature={temperature}
-            setTemperature={setTemperature}
+            onOpenSettings={() => setSettingsOpen(true)}
+            settingsSummary={`${selectedModel || 'Modèle…'} · ${mode === 'default' ? 'Tuteur socratique' : mode === 'note' ? 'Fiche Note' : mode === 'summary' ? 'Résumé' : 'Quiz'}`}
             isStreaming={isStreaming}
             onStopStreaming={handleStopStreaming}
           />
         )}
       </main>
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} models={models} selectedModel={selectedModel} setSelectedModel={setSelectedModel} mode={mode} setMode={setMode} temperature={temperature} setTemperature={setTemperature} disabled={loading} />
     </div>
   )
 }

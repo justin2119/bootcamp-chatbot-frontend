@@ -13,25 +13,21 @@ interface ChatWindowProps {
   draft: string
   onDraftChange: (value: string) => void
   onSend: () => void
-  models: string[]
-  selectedModel: string
-  setSelectedModel: (model: string) => void
   mode: AssistantMode
-  setMode: (mode: AssistantMode) => void
-  temperature: number
-  setTemperature: (temperature: number) => void
+  onOpenSettings: () => void
+  settingsSummary: string
   isStreaming: boolean
   onStopStreaming: () => void
 }
 
 const modeLabels: Record<AssistantMode, string> = {
-  default: 'Tuteur',
+  default: 'Tuteur socratique',
   quiz: 'Quiz',
   summary: 'Résumé',
-  note: 'Note',
+  note: 'Fiche Note',
 }
 
-export default function ChatWindow({ messages, loading, draft, onDraftChange, onSend, models, selectedModel, setSelectedModel, mode, setMode, temperature, setTemperature, isStreaming, onStopStreaming }: ChatWindowProps) {
+export default function ChatWindow({ messages, loading, draft, onDraftChange, onSend, mode, onOpenSettings, settingsSummary, isStreaming, onStopStreaming }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
@@ -46,27 +42,8 @@ export default function ChatWindow({ messages, loading, draft, onDraftChange, on
   return (
     <section className="chat">
       <header className="chat-header">
-        <div><h1>Study Buddy</h1><span className="muted">Choisis ton modèle et ton mode</span></div>
-        <div className="chat-controls">
-          <label className="mode-selector"><span className="sr-only">Mode de réponse</span>
-            <select value={mode} onChange={(event) => setMode(event.target.value as AssistantMode)} disabled={loading}>
-              <option value="default">Tuteur</option>
-              <option value="quiz">Quiz</option>
-              <option value="summary">Résumé</option>
-              <option value="note">Note</option>
-            </select>
-          </label>
-          <label className="model-selector"><span className="sr-only">Modèle</span>
-            <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={loading}>
-              {models.length === 0 && <option value="">Chargement…</option>}
-              {models.map((model) => <option key={model} value={model}>{model}</option>)}
-            </select>
-          </label>
-          <label className="temperature-control">
-            <span>Temperature <output>{temperature.toFixed(1)}</output></span>
-            <input aria-label="Temperature" type="range" min="0" max="1" step="0.1" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} disabled={loading} />
-          </label>
-        </div>
+        <div><h1>Study Buddy</h1><span className="muted">{settingsSummary}</span></div>
+        <button className="settings-trigger" type="button" onClick={onOpenSettings} aria-label="Ouvrir les paramètres">⚙️ <span>Paramètres</span></button>
       </header>
       <div className="messages">
         {messages.length === 0 && !loading && <p className="muted center">Pose ta première question à Study Buddy.</p>}
