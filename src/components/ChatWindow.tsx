@@ -81,7 +81,7 @@ export default function ChatWindow({ messages, loading, draft, onDraftChange, on
         ) : (
           <div key={i} className="bubble custom-role"><span className="role-badge">{m.role}</span><div>{m.content}</div></div>
         ))}
-        {loading && messages[messages.length - 1]?.content === '' && <div className={`bubble ${mode === 'default' ? 'assistant' : `role-${mode}` } typing">…</div>}
+        {loading && messages[messages.length - 1]?.content === '' && <div className={`bubble ${mode === 'default' ? 'assistant' : `role-${mode}`} typing`}>…</div>}
         <div ref={bottomRef} />
       </div>
       <form className="composer" onSubmit={handleSubmit}>
