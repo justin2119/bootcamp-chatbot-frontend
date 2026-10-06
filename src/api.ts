@@ -1,6 +1,7 @@
 // Thin typed wrappers around the FastAPI backend (proxied under /api by Vite).
 
-export type Role = 'user' | 'assistant' | 'system-notification' | 'quiz' | string
+export type Role = 'user' | 'assistant' | 'system-notification' | 'quiz' | 'summary' | 'note' | string
+export type AssistantMode = 'default' | 'quiz' | 'summary' | 'note'
 
 export interface ConversationSummary {
   id: number
@@ -66,10 +67,10 @@ export interface ChatResult {
   notification: string | null
 }
 
-export function sendMessage(conversationId: number, message: string, temperature = 0.7): Promise<ChatResult> {
+export function sendMessage(conversationId: number, message: string, temperature = 0.7, mode: AssistantMode = 'default'): Promise<ChatResult> {
   return request('/chat', {
     method: 'POST',
-    body: JSON.stringify({ conversation_id: conversationId, message, temperature }),
+    body: JSON.stringify({ conversation_id: conversationId, message, temperature, mode }),
   })
 }
 
@@ -78,6 +79,7 @@ export interface SendMessageStreamOptions {
   message: string
   model?: string
   temperature?: number
+  mode?: AssistantMode
   signal?: AbortSignal
   onChunk: (text: string) => void
   onNotification?: (notification: string) => void
@@ -100,13 +102,13 @@ function emitPayload(raw: string, options: SendMessageStreamOptions): boolean {
 }
 
 export async function sendMessageStream(options: SendMessageStreamOptions): Promise<void> {
-  const { conversation_id, message, model, temperature = 0.7, signal } = options
+  const { conversation_id, message, model, temperature = 0.7, mode = 'default', signal } = options
   let response: Response
   try {
     response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream, application/json' },
-      body: JSON.stringify({ conversation_id, message, ...(model ? { model } : {}), temperature, stream: true }),
+      body: JSON.stringify({ conversation_id, message, ...(model ? { model } : {}), temperature, mode, stream: true }),
       signal,
     })
   } catch (err) {

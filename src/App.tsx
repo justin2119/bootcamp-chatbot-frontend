@@ -7,6 +7,7 @@ import {
   getModels,
   listConversations,
   sendMessageStream,
+  type AssistantMode,
   type ConversationSummary,
 } from './api'
 import ChatWindow, { type ChatMessage } from './components/ChatWindow'
@@ -25,6 +26,7 @@ export default function App() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [models, setModels] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState('')
+  const [mode, setMode] = useState<AssistantMode>('default')
   const [temperature, setTemperature] = useState(0.7)
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -105,7 +107,7 @@ export default function App() {
     abortControllerRef.current = controller
     setError(null)
     setDraft('')
-    setMessages((list) => [...list, { role: 'user', content: text }, { role: 'assistant', content: '' }])
+    setMessages((list) => [...list, { role: 'user', content: text }, { role: mode === 'default' ? 'assistant' : mode, content: '' }])
     setLoading(true)
     setIsStreaming(true)
     try {
@@ -114,6 +116,7 @@ export default function App() {
         message: text,
         model: selectedModel || undefined,
         temperature,
+        mode,
         signal: controller.signal,
         onChunk: (chunk) => setMessages((list) => list.map((item, index) => index === assistantIndex ? { ...item, content: item.content + chunk } : item)),
         onNotification: (notification) => setMessages((list) => [...list, { role: 'system-notification', content: notification }]),
@@ -149,6 +152,8 @@ export default function App() {
             models={models}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
+            mode={mode}
+            setMode={setMode}
             temperature={temperature}
             setTemperature={setTemperature}
             isStreaming={isStreaming}

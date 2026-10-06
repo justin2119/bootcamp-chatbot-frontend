@@ -1,6 +1,6 @@
 import { useEffect, useRef, type FormEvent, type KeyboardEvent } from 'react'
 import Markdown from 'react-markdown'
-import type { Role } from '../api'
+import type { AssistantMode, Role } from '../api'
 
 export interface ChatMessage {
   role: Role
@@ -16,13 +16,22 @@ interface ChatWindowProps {
   models: string[]
   selectedModel: string
   setSelectedModel: (model: string) => void
+  mode: AssistantMode
+  setMode: (mode: AssistantMode) => void
   temperature: number
   setTemperature: (temperature: number) => void
   isStreaming: boolean
   onStopStreaming: () => void
 }
 
-export default function ChatWindow({ messages, loading, draft, onDraftChange, onSend, models, selectedModel, setSelectedModel, temperature, setTemperature, isStreaming, onStopStreaming }: ChatWindowProps) {
+const modeLabels: Record<AssistantMode, string> = {
+  default: 'Tuteur',
+  quiz: 'Quiz',
+  summary: 'Résumé',
+  note: 'Note',
+}
+
+export default function ChatWindow({ messages, loading, draft, onDraftChange, onSend, models, selectedModel, setSelectedModel, mode, setMode, temperature, setTemperature, isStreaming, onStopStreaming }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
@@ -37,8 +46,16 @@ export default function ChatWindow({ messages, loading, draft, onDraftChange, on
   return (
     <section className="chat">
       <header className="chat-header">
-        <div><h1>Study Buddy</h1><span className="muted">Choisis ton modèle</span></div>
+        <div><h1>Study Buddy</h1><span className="muted">Choisis ton modèle et ton mode</span></div>
         <div className="chat-controls">
+          <label className="mode-selector"><span className="sr-only">Mode de réponse</span>
+            <select value={mode} onChange={(event) => setMode(event.target.value as AssistantMode)} disabled={loading}>
+              <option value="default">Tuteur</option>
+              <option value="quiz">Quiz</option>
+              <option value="summary">Résumé</option>
+              <option value="note">Note</option>
+            </select>
+          </label>
           <label className="model-selector"><span className="sr-only">Modèle</span>
             <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={loading}>
               {models.length === 0 && <option value="">Chargement…</option>}
@@ -55,14 +72,16 @@ export default function ChatWindow({ messages, loading, draft, onDraftChange, on
         {messages.length === 0 && !loading && <p className="muted center">Pose ta première question à Study Buddy.</p>}
         {messages.map((m, i) => m.role === 'system-notification' ? (
           <div key={i} className="notification">{m.content}</div>
-        ) : m.role === 'quiz' ? (
-          <article key={i} className="bubble quiz"><span className="role-badge">Quiz</span><div>{m.content}</div></article>
+        ) : m.role === 'user' ? (
+          <div key={i} className="bubble user">{m.content}</div>
+        ) : m.role === 'assistant' ? (
+          <article key={i} className="bubble assistant"><Markdown>{m.content}</Markdown></article>
+        ) : m.role === 'quiz' || m.role === 'summary' || m.role === 'note' ? (
+          <article key={i} className={`bubble role-${m.role}`}><span className={`role-badge badge-${m.role}`}>{modeLabels[m.role]}</span><div><Markdown>{m.content}</Markdown></div></article>
         ) : (
-          <div key={i} className={`bubble ${m.role === 'user' ? 'user' : m.role === 'assistant' ? 'assistant' : 'custom-role'}`}>
-            {m.role === 'assistant' ? <Markdown>{m.content}</Markdown> : <><span className="role-badge">{m.role}</span><div>{m.content}</div></>}
-          </div>
+          <div key={i} className="bubble custom-role"><span className="role-badge">{m.role}</span><div>{m.content}</div></div>
         ))}
-        {loading && messages[messages.length - 1]?.content === '' && <div className="bubble assistant typing">…</div>}
+        {loading && messages[messages.length - 1]?.content === '' && <div className={`bubble ${mode === 'default' ? 'assistant' : `role-${mode}` } typing">…</div>}
         <div ref={bottomRef} />
       </div>
       <form className="composer" onSubmit={handleSubmit}>
