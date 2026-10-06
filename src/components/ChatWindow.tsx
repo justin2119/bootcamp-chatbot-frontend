@@ -16,11 +16,13 @@ interface ChatWindowProps {
   models: string[]
   selectedModel: string
   setSelectedModel: (model: string) => void
+  temperature: number
+  setTemperature: (temperature: number) => void
   isStreaming: boolean
   onStopStreaming: () => void
 }
 
-export default function ChatWindow({ messages, loading, draft, onDraftChange, onSend, models, selectedModel, setSelectedModel, isStreaming, onStopStreaming }: ChatWindowProps) {
+export default function ChatWindow({ messages, loading, draft, onDraftChange, onSend, models, selectedModel, setSelectedModel, temperature, setTemperature, isStreaming, onStopStreaming }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
@@ -36,12 +38,18 @@ export default function ChatWindow({ messages, loading, draft, onDraftChange, on
     <section className="chat">
       <header className="chat-header">
         <div><h1>Study Buddy</h1><span className="muted">Choisis ton modèle</span></div>
-        <label className="model-selector"><span className="sr-only">Modèle</span>
-          <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={loading}>
-            {models.length === 0 && <option value="">Chargement…</option>}
-            {models.map((model) => <option key={model} value={model}>{model}</option>)}
-          </select>
-        </label>
+        <div className="chat-controls">
+          <label className="model-selector"><span className="sr-only">Modèle</span>
+            <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={loading}>
+              {models.length === 0 && <option value="">Chargement…</option>}
+              {models.map((model) => <option key={model} value={model}>{model}</option>)}
+            </select>
+          </label>
+          <label className="temperature-control">
+            <span>Temperature <output>{temperature.toFixed(1)}</output></span>
+            <input aria-label="Temperature" type="range" min="0" max="1" step="0.1" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} disabled={loading} />
+          </label>
+        </div>
       </header>
       <div className="messages">
         {messages.length === 0 && !loading && <p className="muted center">Pose ta première question à Study Buddy.</p>}

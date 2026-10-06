@@ -24,6 +24,7 @@ export default function App() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [models, setModels] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState('')
+  const [temperature, setTemperature] = useState(0.7)
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -94,6 +95,7 @@ export default function App() {
         conversation_id: conversationId,
         message: text,
         model: selectedModel || undefined,
+        temperature,
         signal: controller.signal,
         onChunk: (chunk) => setMessages((list) => list.map((item, index) => index === assistantIndex ? { ...item, content: item.content + chunk } : item)),
         onNotification: (notification) => setMessages((list) => [...list, { role: 'system-notification', content: notification }]),
@@ -129,6 +131,8 @@ export default function App() {
             models={models}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
+            temperature={temperature}
+            setTemperature={setTemperature}
             isStreaming={isStreaming}
             onStopStreaming={handleStopStreaming}
           />

@@ -62,10 +62,10 @@ export interface ChatResult {
   notification: string | null
 }
 
-export function sendMessage(conversationId: number, message: string): Promise<ChatResult> {
+export function sendMessage(conversationId: number, message: string, temperature = 0.7): Promise<ChatResult> {
   return request('/chat', {
     method: 'POST',
-    body: JSON.stringify({ conversation_id: conversationId, message }),
+    body: JSON.stringify({ conversation_id: conversationId, message, temperature }),
   })
 }
 
@@ -73,6 +73,7 @@ export interface SendMessageStreamOptions {
   conversation_id: number
   message: string
   model?: string
+  temperature?: number
   signal?: AbortSignal
   onChunk: (text: string) => void
   onNotification?: (notification: string) => void
@@ -95,13 +96,13 @@ function emitPayload(raw: string, options: SendMessageStreamOptions): boolean {
 }
 
 export async function sendMessageStream(options: SendMessageStreamOptions): Promise<void> {
-  const { conversation_id, message, model, signal } = options
+  const { conversation_id, message, model, temperature = 0.7, signal } = options
   let response: Response
   try {
     response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream, application/json' },
-      body: JSON.stringify({ conversation_id, message, ...(model ? { model } : {}), stream: true }),
+      body: JSON.stringify({ conversation_id, message, ...(model ? { model } : {}), temperature, stream: true }),
       signal,
     })
   } catch (err) {
@@ -133,7 +134,6 @@ export async function sendMessageStream(options: SendMessageStreamOptions): Prom
         if (data && emitPayload(data, options)) { await reader.cancel(); return }
       }
     } else if (buffer) {
-      // Non-SSE stream endpoints may send newline-delimited JSON or plain text chunks.
       let newline: number
       while ((newline = buffer.indexOf('\n')) >= 0) {
         const line = buffer.slice(0, newline).replace(/\r$/, '')
