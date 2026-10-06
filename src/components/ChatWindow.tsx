@@ -1,5 +1,7 @@
 import { useEffect, useRef, type FormEvent, type KeyboardEvent } from 'react'
 import Markdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
 import type { AssistantMode, Role } from '../api'
 
 export interface ChatMessage {
@@ -50,11 +52,11 @@ export default function ChatWindow({ messages, loading, draft, onDraftChange, on
         {messages.map((m, i) => m.role === 'system-notification' ? (
           <div key={i} className="notification">{m.content}</div>
         ) : m.role === 'user' ? (
-          <div key={i} className="bubble user">{m.content}</div>
+          <div key={i} className="bubble user"><Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{m.content}</Markdown></div>
         ) : m.role === 'assistant' ? (
-          <article key={i} className="bubble assistant"><Markdown>{m.content}</Markdown></article>
+          <article key={i} className="bubble assistant"><Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{m.content}</Markdown></article>
         ) : m.role === 'quiz' || m.role === 'summary' || m.role === 'note' ? (
-          <article key={i} className={`bubble role-${m.role}`}><span className={`role-badge badge-${m.role}`}>{modeLabels[m.role]}</span><div><Markdown>{m.content}</Markdown></div></article>
+          <article key={i} className={`bubble role-${m.role}`}><span className={`role-badge badge-${m.role}`}>{modeLabels[m.role]}</span><div><Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{m.content}</Markdown></div></article>
         ) : (
           <div key={i} className="bubble custom-role"><span className="role-badge">{m.role}</span><div>{m.content}</div></div>
         ))}
