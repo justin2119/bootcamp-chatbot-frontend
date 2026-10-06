@@ -53,6 +53,10 @@ export async function createConversation(): Promise<number> {
   return conversation_id
 }
 
+export async function deleteConversation(id: string | number): Promise<void> {
+  await request<{ ok: boolean }>(`/conversations/${id}`, { method: 'DELETE' })
+}
+
 export function getMessages(conversationId: number): Promise<Message[]> {
   return request(`/conversations/${conversationId}/messages`)
 }

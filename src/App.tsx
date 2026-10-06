@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import {
   createConversation,
+  deleteConversation,
   getMessages,
   getModels,
   listConversations,
@@ -72,6 +73,23 @@ export default function App() {
     } catch (err) { setError(errorMessage(err)) }
   }
 
+  async function handleDelete(id: number) {
+    if (loading) return
+    setError(null)
+    try {
+      await deleteConversation(id)
+      const remaining = conversations.filter((conversation) => conversation.id !== id)
+      setConversations(remaining)
+      if (activeId === id) {
+        setMessages([])
+        setDraft('')
+        setActiveId(remaining[0]?.id ?? null)
+      }
+    } catch (err) {
+      setError(errorMessage(err))
+    }
+  }
+
   function handleStopStreaming() {
     abortControllerRef.current?.abort()
   }
@@ -116,7 +134,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar conversations={conversations} activeId={activeId} onSelect={selectConversation} onNew={handleNew} />
+      <Sidebar conversations={conversations} activeId={activeId} onSelect={selectConversation} onNew={handleNew} onDelete={handleDelete} deleteDisabled={loading} />
       <main className="main">
         {error && <div className="error" role="alert">{error}<button onClick={() => setError(null)} aria-label="Fermer">×</button></div>}
         {activeId === null ? (
